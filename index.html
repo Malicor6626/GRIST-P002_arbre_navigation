@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tree Widget GRIST</title>
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div id="nav-switcher">
+        <select id="nav-select"></select>
+    </div>
+    <div class="tree" id="tree"></div>
+    <div id="debug"></div>
+
+    <button id="config-btn" title="Paramètres">⚙</button>
+
+    <div id="config-overlay">
+        <div id="config-panel">
+            <h2>⚙ Paramètres du widget</h2>
+            <p id="widget-version" class="version-info"></p>
+            <p class="subtitle">
+                Configurez les navigations, la table d'icônes PNG et la vue liée.
+            </p>
+
+            <h3>🧭 Navigations</h3>
+            <p class="hint" style="margin-top:-4px;">
+                Chaque navigation possède sa propre structure d'arbre, ses propres formules et son propre filtre vers la vue liée. La liste déroulante ci-dessous permet de créer, choisir ou supprimer une navigation ; les sections suivantes (« Structure & Libellé », icônes par formule/niveau, « Vue liée ») s'appliquent à la navigation sélectionnée ici.
+            </p>
+
+            <label for="input-navselect">Navigation en cours de modification</label>
+            <select id="input-navselect"></select>
+
+            <div style="display:flex; gap:8px; margin-bottom:14px;">
+                <button type="button" class="btn btn-secondary" id="btn-nav-add">+ Nouvelle navigation</button>
+                <button type="button" class="btn btn-secondary" id="btn-nav-delete">🗑 Supprimer cette navigation</button>
+            </div>
+
+            <label for="input-navlabel">Libellé de cette navigation</label>
+            <div class="hint">Nom affiché dans la liste déroulante au-dessus de l'arbre.</div>
+            <input type="text" id="input-navlabel" placeholder="Ex : Navigation géographique">
+
+            <h3>🌲 Structure & Libellé <span style="font-weight:normal; color:#999; font-size:11px;">(navigation sélectionnée ci-dessus)</span></h3>
+
+            <label for="input-sourcetable">Table source (optionnel)</label>
+            <div class="hint">
+                Par défaut, le widget affiche la table <strong>liée nativement</strong> à ce widget dans Grist (choisie via le sélecteur de données du widget personnalisé — pas ici). Laissez ce champ <strong>vide</strong> dans la grande majorité des cas.<br>
+                Ne renseignez un nom de table que si CETTE navigation doit afficher une <strong>autre</strong> table que celle liée par défaut. Attention : les données de cette table alternative ne se rafraîchissent pas automatiquement si elles changent dans Grist — un enregistrement du paramétrage ou un rechargement du widget est alors nécessaire.
+            </div>
+            <input type="text" id="input-sourcetable" placeholder="Laisser vide = table liée par défaut">
+
+            <label for="input-colsrc">Colonne chemin dans CE widget</label>
+            <div class="hint">Saisissez le nom exact de la colonne (respectez la casse), tel qu'il apparaît dans Grist.</div>
+            <input type="text" id="input-colsrc" placeholder="C1">
+
+            <label for="input-pathsep">Caractère séparateur des segments du chemin</label>
+            <div class="hint">Doit correspondre exactement au séparateur utilisé dans la formule Grist qui construit la colonne chemin (ex: "-" ou "§").</div>
+            <input type="text" id="input-pathsep" maxlength="3" placeholder="-">
+
+            <label for="input-labelformat">Formule du libellé du nœud</label>
+            <div class="hint">Formattez l'affichage avec $colonne (ex: $Code + " -- " + $Libelle).</div>
+            <input type="text" id="input-labelformat" placeholder='$Code + " -- " + $Libelle'>
+
+            <h3>🖼️ Table d'icônes PNG <span style="font-weight:normal; color:#999; font-size:11px;">(commune à toutes les navigations)</span></h3>
+
+            <label for="input-icontable">Nom de la table des icônes Grist</label>
+            <div class="hint">Table contenant 2 colonnes : "Nom" (Texte) et "Fichier" (Pièce jointe PNG).</div>
+            <input type="text" id="input-icontable" placeholder="Icones">
+
+            <label for="input-defaulticonname">Nom de l'icône par défaut</label>
+            <div class="hint">Nom exact dans la colonne "Nom" de la table d'icônes.</div>
+            <input type="text" id="input-defaulticonname" placeholder="defaut.png">
+
+            <label for="input-iconsize">Taille d'affichage des icônes (px)</label>
+            <div class="hint">Largeur/hauteur des icônes dans l'arbre. Valeur par défaut : 30.</div>
+            <input type="number" id="input-iconsize" min="10" max="80" step="1" placeholder="30">
+
+            <label for="input-iconformula">Icônes par formule sur les colonnes <span style="font-weight:normal; color:#999;">(navigation sélectionnée)</span></label>
+            <div class="hint">
+                Même principe que la formule de libellé : utilisez $colonne et une expression conditionnelle qui renvoie un nom d'icône (celui de la colonne "Nom" de la table d'icônes).<br>
+                Comparaisons possibles : égalité (<code>===</code>), différence (<code>!==</code>), supérieur/inférieur (<code>&gt;</code>, <code>&lt;</code>), non null (<code>$Col !== ""</code>), null (<code>$Col === ""</code>), commence par (<code>$Col.startsWith("...")</code>), combinaisons avec <code>&amp;&amp;</code> / <code>||</code>.<br>
+                Exemple : <code>$Departement === "Ain" ? "icone1.png" : $Code_DGER === "" ? "sans_code.png" : "icone2.png"</code>
+            </div>
+            <textarea id="input-iconformula" rows="3" placeholder='$Departement === "Ain" ? "icone1.png" : "icone2.png"'></textarea>
+
+            <label for="input-iconlevelrules">Icônes par niveau de nœud <span style="font-weight:normal; color:#999;">(navigation sélectionnée)</span></label>
+            <div class="hint">Format : niveau=NomIcone (ex: 1=racine.png).</div>
+            <textarea id="input-iconlevelrules" rows="3" placeholder="1=racine.png&#10;2=dossier.png"></textarea>
+
+            <h3>🎯 Vue liée <span style="font-weight:normal; color:#999; font-size:11px;">(navigation sélectionnée ci-dessus)</span></h3>
+
+            <label for="input-col">Colonne de filtre dans la vue liée</label>
+            <div class="hint">Saisissez le nom exact de la colonne (respectez la casse), tel qu'il apparaît dans Grist.</div>
+            <input type="text" id="input-col" placeholder="ex: Categorie">
+
+            <label for="input-match">Mode de correspondance</label>
+            <select id="input-match">
+                <option value="exact">Valeur exacte du nœud (ex: "N0.1")</option>
+                <option value="full">Chemin complet (ex: "Parent-Enfant-N0.1")</option>
+                <option value="startswith">Commence par le chemin sélectionné</option>
+            </select>
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:normal;">
+                <input type="checkbox" id="input-debug" style="width:auto;margin:0;">
+                Afficher le panneau de debug
+            </label>
+
+            <div class="config-actions">
+                <button class="btn btn-secondary" id="btn-cancel">Annuler</button>
+                <button class="btn btn-primary" id="btn-save">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
